@@ -1,6 +1,7 @@
 import vertexShaderSource from "./shaders/vertex.glsl?raw";
 import fragmentShaderSource from "./shaders/fragment.glsl?raw";
 import { createShader } from "./utils";
+import { mat4, type mat4 as Mat4, type vec3 as Vec3 } from "gl-matrix";
 
 // prettier-ignore
 const cubeVertices = new Float32Array([
@@ -105,8 +106,10 @@ const cubeColors = new Uint8Array([
   ]);
 
 export class Cube {
+  private position: Vec3;
   private cubeVertices: Float32Array;
   private colors: Uint8Array;
+  private modelMatrix: Mat4 = mat4.create();
   private gl: WebGLRenderingContext;
   private positionBuffer: WebGLBuffer | null = null;
   private colorBuffer: WebGLBuffer | null = null;
@@ -115,9 +118,11 @@ export class Cube {
   private vertexShader: WebGLShader | null = null;
   private fragmentShader: WebGLShader | null = null;
   private shaderProgram: WebGLProgram | null = null;
-  private originUniformLocation: WebGLUniformLocation | null = null;
-  constructor(gl: WebGLRenderingContext) {
+  private modelMatrixLocation: WebGLUniformLocation | null = null;
+
+  constructor(gl: WebGLRenderingContext, position: Vec3) {
     this.gl = gl;
+    this.position = position;
     this.cubeVertices = cubeVertices;
     this.colors = cubeColors;
     this.initShaders();
@@ -139,7 +144,7 @@ export class Cube {
       throw new Error(`Erreur de liaison du programme: ${info}`);
     }
 
-    this.originUniformLocation = this.gl.getUniformLocation(this.shaderProgram, "origin");
+    this.modelMatrixLocation = this.gl.getUniformLocation(this.shaderProgram, "modelMatrix");
   }
 
   private initBuffers() {
@@ -176,12 +181,16 @@ export class Cube {
   }
 
   public draw() {
+    mat4.identity(this.modelMatrix);
+    mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
+    mat4.rotate(this.modelMatrix, this.modelMatrix, Math.PI / 4, [0, 1, 0]);
+
     this.gl.useProgram(this.shaderProgram);
-    this.gl.uniform3f(this.originUniformLocation, 0.0, 0.0, 0.0);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
     this.gl.vertexAttribPointer(this.positionAttributeLocation!, 3, this.gl.FLOAT, false, 0, 0);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
     this.gl.vertexAttribPointer(this.colorAttributeLocation!, 3, this.gl.UNSIGNED_BYTE, true, 0, 0);
+    this.gl.uniformMatrix4fv(this.modelMatrixLocation!, false, this.modelMatrix);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 36);
   }
 }

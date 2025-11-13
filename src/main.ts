@@ -11,13 +11,15 @@ if (!gl) {
   throw new Error("WebGL2 n'est pas supporté par votre navigateur");
 }
 
-const cube = new Cube(gl);
+const cube = new Cube(gl, [0.5, 0.5, 0]);
+const cube2 = new Cube(gl, [0, 0, 0]);
 
 function animate() {
   requestAnimationFrame(animate);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.clear(gl.DEPTH_BUFFER_BIT);
   cube.draw();
+  cube2.draw();
 }
 
 animate();

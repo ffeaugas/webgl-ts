@@ -1,196 +1,195 @@
 import vertexShaderSource from "./shaders/vertex.glsl?raw";
 import fragmentShaderSource from "./shaders/fragment.glsl?raw";
-import { createShader } from "./utils";
+import { createShader, getAttribLocation, getUniformLocation } from "./utils";
 import { mat4, type mat4 as Mat4, type vec3 as Vec3 } from "gl-matrix";
+import type { Drawable } from "./Drawable";
+
+const CUBE_SIZE = 0.2;
 
 // prettier-ignore
-const cubeVertices = new Float32Array([
-    // Front face 
-    -0.2, -0.2, 0.2, 
-    0.2, -0.2, 0.2,
-    0.2, 0.2, 0.2,
-    0.2, 0.2, 0.2,
-    -0.2, 0.2, 0.2,
-    -0.2, -0.2, 0.2,
-  
-    // Back face
-    -0.2, -0.2, -0.2,
-    -0.2, 0.2, -0.2,
-    0.2, 0.2, -0.2,
-    0.2, 0.2, -0.2,
-    0.2, -0.2, -0.2,
-    -0.2, -0.2, -0.2,
-  
-    // Left face
-    -0.2, -0.2, -0.2,
-    -0.2, -0.2, 0.2,
-    -0.2, 0.2, 0.2,
-    -0.2, 0.2, 0.2,
-    -0.2, 0.2, -0.2,
-    -0.2, -0.2, -0.2,
-  
-    // Right face
-    0.2, -0.2, -0.2,
-    0.2, 0.2, -0.2,
-    0.2, 0.2, 0.2,
-    0.2, 0.2, 0.2,
-    0.2, -0.2, 0.2,
-    0.2, -0.2, -0.2,
-  
-    // Top face
-    -0.2, 0.2, -0.2,
-    -0.2, 0.2, 0.2,
-    0.2, 0.2, 0.2,
-    0.2, 0.2, 0.2,
-    0.2, 0.2, -0.2,
-    -0.2, 0.2, -0.2,
-  
-    // Bottom face
-    -0.2, -0.2, -0.2,
-    0.2, -0.2, -0.2,
-    0.2, -0.2, 0.2,
-    0.2, -0.2, 0.2,
-    -0.2, -0.2, 0.2,
-    -0.2, -0.2, -0.2,
-  ]);
+const CUBE_VERTICES = new Float32Array([
+  -CUBE_SIZE, -CUBE_SIZE,  CUBE_SIZE,  // 0: front-bottom-left
+   CUBE_SIZE, -CUBE_SIZE,  CUBE_SIZE,  // 1: front-bottom-right
+   CUBE_SIZE,  CUBE_SIZE,  CUBE_SIZE,  // 2: front-top-right
+  -CUBE_SIZE,  CUBE_SIZE,  CUBE_SIZE,  // 3: front-top-left
+  -CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE,  // 4: back-bottom-left
+   CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE,  // 5: back-bottom-right
+   CUBE_SIZE,  CUBE_SIZE, -CUBE_SIZE,  // 6: back-top-right
+  -CUBE_SIZE,  CUBE_SIZE, -CUBE_SIZE,  // 7: back-top-left
+]);
 
 // prettier-ignore
-const cubeColors = new Uint8Array([
-    // Front face (red) - 6 vertices
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-  
-    // Back face (green) - 6 vertices
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-  
-    // Left face (blue) - 6 vertices
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-  
-    // Right face (red) - 6 vertices
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-    255, 0, 0,
-  
-    // Top face (green) - 6 vertices
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-    0, 255, 0,
-  
-    // Bottom face (blue) - 6 vertices
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-    0, 0, 255,
-  ]);
+const CUBE_COLORS = new Uint8Array([
+  255,   0,   0,
+  255, 255,   0,
+    0, 255,   0,
+    0,   0, 255,
+  255,   0, 255,
+  255, 128,   0,
+    0, 255, 255,
+  128, 128, 128,
+]);
 
-export class Cube {
-  private position: Vec3;
-  private cubeVertices: Float32Array;
-  private colors: Uint8Array;
-  private modelMatrix: Mat4 = mat4.create();
-  private gl: WebGLRenderingContext;
-  private positionBuffer: WebGLBuffer | null = null;
-  private colorBuffer: WebGLBuffer | null = null;
-  private positionAttributeLocation: number | null = null;
-  private colorAttributeLocation: number | null = null;
-  private vertexShader: WebGLShader | null = null;
-  private fragmentShader: WebGLShader | null = null;
-  private shaderProgram: WebGLProgram | null = null;
-  private modelMatrixLocation: WebGLUniformLocation | null = null;
+const CUBE_INDICES = new Uint16Array([
+  // Front face
+  0, 1, 2, 2, 3, 0,
+  // Back face
+  4, 7, 6, 6, 5, 4,
+  // Left face
+  4, 0, 3, 3, 7, 4,
+  // Right face
+  1, 5, 6, 6, 2, 1,
+  // Top face
+  3, 2, 6, 6, 7, 3,
+  // Bottom face
+  4, 5, 1, 1, 0, 4,
+]);
 
-  constructor(gl: WebGLRenderingContext, position: Vec3) {
+export class Cube implements Drawable {
+  readonly position: Vec3;
+  private readonly gl: WebGL2RenderingContext;
+  private readonly modelMatrix: Mat4 = mat4.create();
+
+  // WebGL2 resources
+  private readonly vao: WebGLVertexArrayObject;
+  private readonly positionBuffer: WebGLBuffer;
+  private readonly colorBuffer: WebGLBuffer;
+  private readonly indexBuffer: WebGLBuffer;
+  private readonly shaderProgram: WebGLProgram;
+
+  // Shader locations
+  private readonly attribLocations: {
+    position: number;
+    color: number;
+  };
+  private readonly uniformLocations: {
+    modelMatrix: WebGLUniformLocation;
+  };
+
+  constructor(gl: WebGL2RenderingContext, position: Vec3) {
     this.gl = gl;
     this.position = position;
-    this.cubeVertices = cubeVertices;
-    this.colors = cubeColors;
-    this.initShaders();
-    this.initBuffers();
+
+    this.shaderProgram = this.initShaders();
+
+    this.attribLocations = {
+      position: getAttribLocation(this.gl, this.shaderProgram, "vertexPosition"),
+      color: getAttribLocation(this.gl, this.shaderProgram, "vertexColor"),
+    };
+
+    this.uniformLocations = {
+      modelMatrix: getUniformLocation(this.gl, this.shaderProgram, "modelMatrix"),
+    };
+
+    this.positionBuffer = this.createBuffer(CUBE_VERTICES);
+    this.colorBuffer = this.createBuffer(CUBE_COLORS);
+    this.indexBuffer = this.createIndexBuffer(CUBE_INDICES);
+
+    const vao = this.gl.createVertexArray();
+    if (!vao) {
+      throw new Error("Failed to create VAO");
+    }
+    this.vao = vao;
+
+    this.setupVertexAttributeObject();
   }
 
-  private initShaders() {
-    this.vertexShader = createShader(this.gl, this.gl.VERTEX_SHADER, vertexShaderSource);
-    this.fragmentShader = createShader(this.gl, this.gl.FRAGMENT_SHADER, fragmentShaderSource);
+  private initShaders(): WebGLProgram {
+    const vertexShader = createShader(this.gl, this.gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(this.gl, this.gl.FRAGMENT_SHADER, fragmentShaderSource);
 
-    this.shaderProgram = this.gl.createProgram()!;
-    this.gl.attachShader(this.shaderProgram, this.vertexShader);
-    this.gl.attachShader(this.shaderProgram, this.fragmentShader);
-    this.gl.linkProgram(this.shaderProgram);
-
-    if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
-      const info = this.gl.getProgramInfoLog(this.shaderProgram);
-      this.gl.deleteProgram(this.shaderProgram);
-      throw new Error(`Erreur de liaison du programme: ${info}`);
+    const program = this.gl.createProgram();
+    if (!program) {
+      throw new Error("Failed to create shader program");
     }
 
-    this.modelMatrixLocation = this.gl.getUniformLocation(this.shaderProgram, "modelMatrix");
+    this.gl.attachShader(program, vertexShader);
+    this.gl.attachShader(program, fragmentShader);
+    this.gl.linkProgram(program);
+
+    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+      const info = this.gl.getProgramInfoLog(program);
+      this.gl.deleteProgram(program);
+      throw new Error(`Shader linking failed: ${info}`);
+    }
+
+    this.gl.deleteShader(vertexShader);
+    this.gl.deleteShader(fragmentShader);
+
+    return program;
   }
 
-  private initBuffers() {
-    this.positionBuffer = this.gl.createBuffer();
-    if (!this.positionBuffer) {
-      throw new Error("Failed to create position buffer");
+  private createBuffer(data: Float32Array | Uint8Array): WebGLBuffer {
+    const buffer = this.gl.createBuffer();
+    if (!buffer) {
+      throw new Error("Failed to create buffer");
     }
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+
+    return buffer;
+  }
+
+  private createIndexBuffer(data: Uint16Array): WebGLBuffer {
+    const buffer = this.gl.createBuffer();
+    if (!buffer) {
+      throw new Error("Failed to create index buffer");
+    }
+
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
+
+    return buffer;
+  }
+
+  private setupVertexAttributeObject(): void {
+    this.gl.bindVertexArray(this.vao);
+
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.cubeVertices, this.gl.STATIC_DRAW);
+    this.gl.enableVertexAttribArray(this.attribLocations.position);
+    this.gl.vertexAttribPointer(this.attribLocations.position, 3, this.gl.FLOAT, false, 0, 0);
 
-    this.colorBuffer = this.gl.createBuffer();
-    if (!this.colorBuffer) {
-      throw new Error("Failed to create color buffer");
-    }
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.colors, this.gl.STATIC_DRAW);
+    this.gl.enableVertexAttribArray(this.attribLocations.color);
+    this.gl.vertexAttribPointer(this.attribLocations.color, 3, this.gl.UNSIGNED_BYTE, true, 0, 0);
 
-    this.positionAttributeLocation = this.gl.getAttribLocation(
-      this.shaderProgram!,
-      "vertexPosition"
-    );
-    if (this.positionAttributeLocation < 0) {
-      throw new Error("Failed to get position attribute location");
-    }
-    this.gl.enableVertexAttribArray(this.positionAttributeLocation);
-    this.gl.vertexAttribPointer(this.positionAttributeLocation, 3, this.gl.FLOAT, false, 0, 0);
-
-    this.colorAttributeLocation = this.gl.getAttribLocation(this.shaderProgram!, "vertexColor");
-    if (this.colorAttributeLocation < 0) {
-      throw new Error("Failed to get color attribute location");
-    }
-    this.gl.enableVertexAttribArray(this.colorAttributeLocation);
-    this.gl.vertexAttribPointer(this.colorAttributeLocation, 3, this.gl.UNSIGNED_BYTE, true, 0, 0);
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    this.gl.bindVertexArray(null);
   }
 
-  public draw() {
+  private updateModelMatrix(): void {
     mat4.identity(this.modelMatrix);
     mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
     mat4.rotate(this.modelMatrix, this.modelMatrix, Math.PI / 4, [0, 1, 0]);
+  }
+
+  public draw(): void {
+    this.updateModelMatrix();
 
     this.gl.useProgram(this.shaderProgram);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
-    this.gl.vertexAttribPointer(this.positionAttributeLocation!, 3, this.gl.FLOAT, false, 0, 0);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-    this.gl.vertexAttribPointer(this.colorAttributeLocation!, 3, this.gl.UNSIGNED_BYTE, true, 0, 0);
-    this.gl.uniformMatrix4fv(this.modelMatrixLocation!, false, this.modelMatrix);
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 36);
+
+    // Bind le VAO (restaure buffers + attributs + index buffer)
+    this.gl.bindVertexArray(this.vao);
+
+    // Upload la matrice model
+    this.gl.uniformMatrix4fv(this.uniformLocations.modelMatrix, false, this.modelMatrix);
+
+    // 36 indices (12 triangles × 3 indices), mais seulement 8 vertices uniques
+    this.gl.drawElements(this.gl.TRIANGLES, CUBE_INDICES.length, this.gl.UNSIGNED_SHORT, 0);
+
+    // Unbind (bonne pratique)
+    this.gl.bindVertexArray(null);
+  }
+
+  /**
+   * Libère les ressources WebGL
+   */
+  public dispose(): void {
+    this.gl.deleteVertexArray(this.vao);
+    this.gl.deleteBuffer(this.positionBuffer);
+    this.gl.deleteBuffer(this.colorBuffer);
+    this.gl.deleteBuffer(this.indexBuffer);
+    this.gl.deleteProgram(this.shaderProgram);
   }
 }

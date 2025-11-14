@@ -4,43 +4,41 @@ import { safeCreateBuffer, createShader, getAttribLocation, getUniformLocation }
 import { mat4, type mat4 as Mat4, type vec3 as Vec3 } from "gl-matrix";
 import type { Drawable } from "./Drawable";
 
-const CUBE_SIZE = 0.2;
+const PYRAMID_SIZE = 0.2;
 
 // prettier-ignore
-const CUBE_VERTICES = new Float32Array([
-  -CUBE_SIZE, -CUBE_SIZE,  CUBE_SIZE,  // 0: front-bottom-left
-   CUBE_SIZE, -CUBE_SIZE,  CUBE_SIZE,  // 1: front-bottom-right
-   CUBE_SIZE,  CUBE_SIZE,  CUBE_SIZE,  // 2: front-top-right
-  -CUBE_SIZE,  CUBE_SIZE,  CUBE_SIZE,  // 3: front-top-left
-  -CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE,  // 4: back-bottom-left
-   CUBE_SIZE, -CUBE_SIZE, -CUBE_SIZE,  // 5: back-bottom-right
-   CUBE_SIZE,  CUBE_SIZE, -CUBE_SIZE,  // 6: back-top-right
-  -CUBE_SIZE,  CUBE_SIZE, -CUBE_SIZE,  // 7: back-top-left
+const PYRAMID_VERTICES = new Float32Array([
+  // Base
+  -PYRAMID_SIZE, -PYRAMID_SIZE,  PYRAMID_SIZE,   // 0: front-left
+   PYRAMID_SIZE, -PYRAMID_SIZE,  PYRAMID_SIZE,   // 1: front-right
+   PYRAMID_SIZE, -PYRAMID_SIZE, -PYRAMID_SIZE,   // 2: back-right
+  -PYRAMID_SIZE, -PYRAMID_SIZE, -PYRAMID_SIZE,   // 3: back-left
+  // Apex
+   0, PYRAMID_SIZE, 0,                          // 4: top/apex
 ]);
 
 // prettier-ignore
-const CUBE_COLORS = new Uint8Array([
-  255, 0, 0,
-  255, 0, 0,
-  255, 0, 0,
-  255, 0, 0,
-  0, 0, 255,
-  0, 0, 255,
-  0, 0, 255,
-  0, 0, 255,
+const PYRAMID_COLORS = new Uint8Array([
+  255,   0,   0,    // base front-left
+  255,   0,   0,    // base front-right
+  255,   0,   0,    // base back-right
+  255,   0,   0,    // base back-left
+  0,   255,   0,    // apex
 ]);
 
 // prettier-ignore
-const CUBE_INDICES = new Uint16Array([
-  0, 1, 2, 2, 3, 0, // Front face
-  4, 7, 6, 6, 5, 4, // Back face
-  4, 0, 3, 3, 7, 4, // Left face
-  1, 5, 6, 6, 2, 1, // Right face
-  3, 2, 6, 6, 7, 3, // Top face
-  4, 5, 1, 1, 0, 4, // Bottom face
+const PYRAMID_INDICES = new Uint16Array([
+  // Base (two triangles)
+  0, 1, 2,
+  0, 2, 3,
+  // Sides
+  0, 1, 4,  // front face
+  1, 2, 4,  // right face
+  2, 3, 4,  // back face
+  3, 0, 4   // left face
 ]);
 
-export class Cube implements Drawable {
+export class Pyramid implements Drawable {
   readonly position: Vec3;
   private readonly gl: WebGL2RenderingContext;
   private readonly modelMatrix: Mat4 = mat4.create();
@@ -76,9 +74,9 @@ export class Cube implements Drawable {
       modelMatrix: getUniformLocation(this.gl, this.shaderProgram, "modelMatrix"),
     };
 
-    this.positionBuffer = safeCreateBuffer(this.gl, CUBE_VERTICES);
-    this.colorBuffer = safeCreateBuffer(this.gl, CUBE_COLORS);
-    this.indexBuffer = this.createIndexBuffer(CUBE_INDICES);
+    this.positionBuffer = safeCreateBuffer(this.gl, PYRAMID_VERTICES);
+    this.colorBuffer = safeCreateBuffer(this.gl, PYRAMID_COLORS);
+    this.indexBuffer = this.createIndexBuffer(PYRAMID_INDICES);
 
     const vao = this.gl.createVertexArray();
     if (!vao) {
@@ -153,7 +151,7 @@ export class Cube implements Drawable {
     this.gl.useProgram(this.shaderProgram);
     this.gl.bindVertexArray(this.vao);
     this.gl.uniformMatrix4fv(this.uniformLocations.modelMatrix, false, this.modelMatrix);
-    this.gl.drawElements(this.gl.TRIANGLES, CUBE_INDICES.length, this.gl.UNSIGNED_SHORT, 0);
+    this.gl.drawElements(this.gl.TRIANGLES, PYRAMID_INDICES.length, this.gl.UNSIGNED_SHORT, 0);
     this.gl.bindVertexArray(null);
   }
 

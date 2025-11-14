@@ -1,5 +1,6 @@
 import "./style.css";
 import { Cube } from "./Cube";
+import { Pyramid } from "./Pyramid";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#webgl-container")!;
 canvas.width = window.innerWidth;
@@ -13,13 +14,16 @@ if (!gl) {
 
 const cube = new Cube(gl, [0.5, 0.5, 0]);
 const cube2 = new Cube(gl, [0, 0, 0]);
+const pyramid = new Pyramid(gl, [0, 0, 0]);
 
 function animate() {
   requestAnimationFrame(animate);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.clear(gl.DEPTH_BUFFER_BIT);
-  cube.draw();
-  cube2.draw();
+  // cube.draw();
+  // cube2.draw();
+  // triangle.draw();
+  pyramid.draw();
 }
 
 animate();

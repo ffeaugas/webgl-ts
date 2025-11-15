@@ -35,7 +35,7 @@ const PYRAMID_INDICES = new Uint16Array([
   0, 1, 4,  // front face
   1, 2, 4,  // right face
   2, 3, 4,  // back face
-  3, 0, 4   // left face
+  3, 0, 4,   // left face
 ]);
 
 export class Pyramid implements Drawable {
@@ -151,6 +151,15 @@ export class Pyramid implements Drawable {
     this.gl.useProgram(this.shaderProgram);
     this.gl.bindVertexArray(this.vao);
     this.gl.uniformMatrix4fv(this.uniformLocations.modelMatrix, false, this.modelMatrix);
+
+    // circular light motion
+    const radius = 0.5;
+    const speed = 0.001; // radians per frame
+    const angle = performance.now() * speed;
+
+    this.position[0] = Math.cos(angle) * radius;
+    // this.position[2] = Math.sin(angle) * radius;
+
     this.gl.drawElements(this.gl.TRIANGLES, PYRAMID_INDICES.length, this.gl.UNSIGNED_SHORT, 0);
     this.gl.bindVertexArray(null);
   }

@@ -1,3 +1,7 @@
+let lastTime = performance.now();
+let frames = 0;
+let fps = 0;
+
 export function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
@@ -49,4 +53,20 @@ export function safeCreateBuffer(
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
   return buffer;
+}
+
+export function updateFPS() {
+  frames++;
+  const currentTime = performance.now();
+
+  if (currentTime >= lastTime + 1000) {
+    fps = Math.round((frames * 1000) / (currentTime - lastTime));
+    frames = 0;
+    lastTime = currentTime;
+
+    const fpsElement = document.getElementById("fps");
+    if (fpsElement) {
+      fpsElement.textContent = `FPS: ${fps}`;
+    }
+  }
 }

@@ -5,13 +5,13 @@ precision mediump float;
 in vec3 vertexPosition;
 in vec3 vertexColor;
 
-uniform vec3 originPosition;
 uniform mat4 modelMatrix;
+uniform mat4 projectionViewMatrix;
 
 out vec3 fragmentColor;
 
 void main() {
-  gl_Position = modelMatrix * vec4(vertexPosition + originPosition, 1.0);
+  gl_Position = projectionViewMatrix * modelMatrix * vec4(vertexPosition, 1.0);
   fragmentColor = vertexColor;
 }
 

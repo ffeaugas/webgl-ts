@@ -1,60 +1,40 @@
 import vertexShaderSource from "./shaders/vertex.glsl?raw";
 import fragmentShaderSource from "./shaders/fragment.glsl?raw";
 import { safeCreateBuffer, createShader, getAttribLocation, getUniformLocation } from "./utils";
-import { mat4, type mat4 as Mat4, type vec3 as Vec3 } from "gl-matrix";
+import { mat4, type mat4 as Mat4, type vec3 as Vec3, type vec4 as Vec4 } from "gl-matrix";
 import type { Drawable } from "./Drawable";
 
 // prettier-ignore
-const CUBE_VERTICES = new Float32Array([
-  // Front face
-  -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
-  // Back face
-  -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
-  // Top face
-  -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
-  // Bottom face
-  -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
-  // Right face
-  1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
-  // Left face
-  -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
+const WALL_VERTICES = new Float32Array([
+  -1.0, -1.0, 0.0, //
+  1.0, -1.0, 0.0, //
+  1.0, 1.0, 0.0,  //
+  -1.0, 1.0, 0.0,
 ]);
 
 // prettier-ignore
 const faceColors = [
-  [1.0, 1.0, 1.0, 1.0], // Front face: white
-  [1.0, 0.0, 0.0, 1.0], // Back face: red
-  [0.0, 1.0, 0.0, 1.0], // Top face: green
-  [0.0, 0.0, 1.0, 1.0], // Bottom face: blue
-  [1.0, 1.0, 0.0, 1.0], // Right face: yellow
-  [1.0, 0.0, 1.0, 1.0], // Left face: purple
+  [0.0, 1.0, 0.0, 1.0], // Front face: white
 ];
-
-// Convert the array of colors into a table for all the vertices.
 
 let colors: number[] = [];
 
 for (const c of faceColors) {
-  // Repeat each color four times for the four vertices of the face
   colors = colors.concat(c, c, c, c);
 }
 
-const CUBE_COLORS = new Float32Array(colors);
+const WALL_COLORS = new Float32Array(colors);
 
 // prettier-ignore
-const CUBE_INDICES = new Uint16Array([
-    0,  1,  2,      0,  2,  3,    // front
-    4,  5,  6,      4,  6,  7,    // back
-    8,  9,  10,     8,  10, 11,   // top
-    12, 13, 14,     12, 14, 15,   // bottom
-    16, 17, 18,     16, 18, 19,   // right
-    20, 21, 22,     20, 22, 23,   // left
+const WALL_INDICES = new Uint16Array([
+    0,  1,  2,      0,  2,  3,
 ]);
 
-export class Cube implements Drawable {
+export class Wall implements Drawable {
   readonly position: Vec3;
   readonly rotation: Vec3;
   readonly scale: Vec3;
+  readonly color: Vec4 | undefined;
   private readonly gl: WebGL2RenderingContext;
   private readonly modelMatrix: Mat4 = mat4.create();
 
@@ -77,12 +57,18 @@ export class Cube implements Drawable {
 
   constructor(
     gl: WebGL2RenderingContext,
-    { position, rotation, scale }: { position: Vec3; rotation: Vec3; scale: Vec3 }
+    {
+      position,
+      rotation,
+      scale,
+      color,
+    }: { position: Vec3; rotation: Vec3; scale: Vec3; color?: Vec4 }
   ) {
     this.gl = gl;
     this.position = position;
     this.rotation = rotation;
     this.scale = scale;
+    this.color = color;
     this.shaderProgram = this.initShaders();
 
     this.attribLocations = {
@@ -95,9 +81,14 @@ export class Cube implements Drawable {
       projectionViewMatrix: getUniformLocation(this.gl, this.shaderProgram, "projectionViewMatrix"),
     };
 
-    this.positionBuffer = safeCreateBuffer(this.gl, CUBE_VERTICES);
-    this.colorBuffer = safeCreateBuffer(this.gl, CUBE_COLORS);
-    this.indexBuffer = this.createIndexBuffer(CUBE_INDICES);
+    this.positionBuffer = safeCreateBuffer(this.gl, WALL_VERTICES);
+    this.colorBuffer = safeCreateBuffer(
+      this.gl,
+      this.color
+        ? new Float32Array([...this.color, ...this.color, ...this.color, ...this.color])
+        : WALL_COLORS
+    );
+    this.indexBuffer = this.createIndexBuffer(WALL_INDICES);
 
     const vao = this.gl.createVertexArray();
     if (!vao) {
@@ -173,7 +164,8 @@ export class Cube implements Drawable {
     this.updateModelMatrix();
 
     this.gl.enable(this.gl.DEPTH_TEST);
-    this.gl.enable(this.gl.CULL_FACE);
+    // Disable face culling so quads are visible from both sides
+    this.gl.disable(this.gl.CULL_FACE);
     this.gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     this.gl.useProgram(this.shaderProgram);
     this.gl.bindVertexArray(this.vao);
@@ -183,7 +175,7 @@ export class Cube implements Drawable {
       false,
       projectionViewMatrix
     );
-    this.gl.drawElements(this.gl.TRIANGLES, CUBE_INDICES.length, this.gl.UNSIGNED_SHORT, 0);
+    this.gl.drawElements(this.gl.TRIANGLES, WALL_INDICES.length, this.gl.UNSIGNED_SHORT, 0);
     this.gl.bindVertexArray(null);
   }
 

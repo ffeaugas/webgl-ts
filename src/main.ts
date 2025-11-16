@@ -4,6 +4,7 @@ import { updateFPS } from "./utils";
 import { mat4, type mat4 as Mat4 } from "gl-matrix";
 import { Scene } from "./Scene";
 import { Wall } from "./Wall";
+import { updateViewMatrix, initMouseControls } from "./controls";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#webgl-container")!;
 canvas.width = window.innerWidth;
@@ -79,13 +80,17 @@ mat4.perspective(
   /* near plane       */ 0.1,
   /* far plane        */ 1000
 );
-mat4.multiply(projectionViewMatrix, projectionMatrix, viewMatrix);
+
+initMouseControls(canvas);
 
 function animate() {
   requestAnimationFrame(animate);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.clear(gl.DEPTH_BUFFER_BIT);
 
+  updateViewMatrix(viewMatrix);
+
+  mat4.multiply(projectionViewMatrix, projectionMatrix, viewMatrix);
   scene.render(projectionViewMatrix);
 
   updateFPS();

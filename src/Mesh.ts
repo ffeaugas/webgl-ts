@@ -22,24 +22,21 @@ export abstract class Mesh implements Drawable {
   readonly rotation: Vec3;
   readonly scale: Vec3;
   readonly color: Vec4 | undefined;
-  protected readonly gl: WebGL2RenderingContext;
+  private readonly gl: WebGL2RenderingContext;
   private readonly modelMatrix: Mat4 = mat4.create();
-
-  protected readonly vao: WebGLVertexArrayObject;
-  protected readonly positionBuffer: WebGLBuffer;
-  protected readonly colorBuffer: WebGLBuffer;
-  protected readonly indexBuffer: WebGLBuffer;
-  protected readonly shaderProgram: WebGLProgram;
-
-  protected readonly attribLocations: {
+  private readonly vao: WebGLVertexArrayObject;
+  private readonly positionBuffer: WebGLBuffer;
+  private readonly colorBuffer: WebGLBuffer;
+  private readonly indexBuffer: WebGLBuffer;
+  private readonly shaderProgram: WebGLProgram;
+  private readonly attribLocations: {
     position: number;
     color: number;
   };
-  protected readonly uniformLocations: {
+  private readonly uniformLocations: {
     modelMatrix: WebGLUniformLocation;
     projectionViewMatrix: WebGLUniformLocation;
   };
-
   protected readonly indices: Uint16Array;
 
   constructor(gl: WebGL2RenderingContext, options: MeshOptions) {
@@ -48,26 +45,20 @@ export abstract class Mesh implements Drawable {
     this.rotation = options.rotation;
     this.scale = options.scale;
     this.color = options.color;
-
     const geometry = this.getGeometry();
     this.indices = geometry.indices;
-
     this.shaderProgram = initShaders(this.gl, vertexShaderSource, fragmentShaderSource);
-
     this.attribLocations = {
       position: getAttribLocation(this.gl, this.shaderProgram, "vertexPosition"),
       color: getAttribLocation(this.gl, this.shaderProgram, "vertexColor"),
     };
-
     this.uniformLocations = {
       modelMatrix: getUniformLocation(this.gl, this.shaderProgram, "modelMatrix"),
       projectionViewMatrix: getUniformLocation(this.gl, this.shaderProgram, "projectionViewMatrix"),
     };
-
     const colors = this.color
       ? this.generateColorArray(this.color, geometry.vertices.length / 3)
       : geometry.colors;
-
     this.positionBuffer = safeCreateBuffer(this.gl, geometry.vertices);
     this.colorBuffer = safeCreateBuffer(this.gl, colors);
     this.indexBuffer = this.createIndexBuffer(geometry.indices);

@@ -23,6 +23,14 @@ for (const c of faceColors) {
 const WALL_COLORS = new Float32Array(colors);
 
 // prettier-ignore
+const WALL_TEXTURE_COORDS = new Float32Array([
+  0.0, 0.0,  // bottom-left
+  20.0, 0.0,  // bottom-right
+  20.0, 20.0,  // top-right
+  0.0, 20.0,  // top-left
+]);
+
+// prettier-ignore
 const WALL_INDICES = new Uint16Array([
     0,  1,  2,      0,  2,  3,
 ]);
@@ -35,13 +43,15 @@ export class Wall extends Mesh {
       rotation,
       scale,
       color,
-    }: { position: Vec3; rotation: Vec3; scale: Vec3; color?: Vec4 }
+      texture,
+    }: { position: Vec3; rotation: Vec3; scale: Vec3; color?: Vec4; texture?: WebGLTexture }
   ) {
     super(gl, {
       position,
       rotation,
       scale,
       color,
+      texture,
     });
   }
 
@@ -49,6 +59,7 @@ export class Wall extends Mesh {
     return {
       vertices: WALL_VERTICES,
       colors: WALL_COLORS,
+      textureCoords: WALL_TEXTURE_COORDS,
       indices: WALL_INDICES,
     };
   }

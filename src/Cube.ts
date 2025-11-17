@@ -36,6 +36,22 @@ for (const c of faceColors) {
 const CUBE_COLORS = new Float32Array(colors);
 
 // prettier-ignore
+const CUBE_TEXTURE_COORDS = new Float32Array([
+  // Front face
+  0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
+  // Back face
+  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,  0.0, 0.0,
+  // Top face
+  0.0, 1.0,  0.0, 0.0,  1.0, 0.0,  1.0, 1.0,
+  // Bottom face
+  1.0, 1.0,  0.0, 1.0,  0.0, 0.0,  1.0, 0.0,
+  // Right face
+  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,  0.0, 0.0,
+  // Left face
+  0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
+]);
+
+// prettier-ignore
 const CUBE_INDICES = new Uint16Array([
     0,  1,  2,      0,  2,  3,    // front
     4,  5,  6,      4,  6,  7,    // back
@@ -48,12 +64,18 @@ const CUBE_INDICES = new Uint16Array([
 export class Cube extends Mesh {
   constructor(
     gl: WebGL2RenderingContext,
-    { position, rotation, scale }: { position: Vec3; rotation: Vec3; scale: Vec3 }
+    {
+      position,
+      rotation,
+      scale,
+      texture,
+    }: { position: Vec3; rotation: Vec3; scale: Vec3; texture?: WebGLTexture }
   ) {
     super(gl, {
       position,
       rotation,
       scale,
+      texture,
     });
   }
 
@@ -61,6 +83,7 @@ export class Cube extends Mesh {
     return {
       vertices: CUBE_VERTICES,
       colors: CUBE_COLORS,
+      textureCoords: CUBE_TEXTURE_COORDS,
       indices: CUBE_INDICES,
     };
   }

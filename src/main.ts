@@ -1,6 +1,6 @@
 import "./style.css";
 import { Cube } from "./Cube";
-import { updateFPS } from "./utils";
+import { loadTexture, updateFPS } from "./utils";
 import { mat4, type mat4 as Mat4 } from "gl-matrix";
 import { Scene } from "./Scene";
 import { Wall } from "./Wall";
@@ -16,7 +16,12 @@ if (!gl) {
   throw new Error("WebGL2 n'est pas supporté par votre navigateur");
 }
 
+const stoneTexture = loadTexture(gl, "public/stone-texture.jpg");
+const carrelageTexture = loadTexture(gl, "public/carrelage-texture.jpg");
+const betonTexture = loadTexture(gl, "public/beton-texture.jpg");
+
 const cube1 = new Cube(gl, {
+  texture: stoneTexture,
   position: [0.5, 0, 0],
   rotation: [0, Math.PI / 2, 0],
   scale: [0.2, 0.2, 0.2],
@@ -37,28 +42,28 @@ const cube4 = new Cube(gl, {
   scale: [0.2, 0.2, 0.2],
 });
 const floor = new Wall(gl, {
+  texture: carrelageTexture,
   position: [0, -0.5, -3],
   rotation: [-Math.PI / 2, 0, 0],
   scale: [10, 10, 10],
-  color: [0.2, 0.2, 0.2, 1.0],
 });
 const leftWall = new Wall(gl, {
+  texture: betonTexture,
   position: [-3, 0, -3],
   rotation: [0, Math.PI / 2, 0],
   scale: [10, 10, 10],
-  color: [0.5, 0.5, 0.5, 1.0],
 });
 const rightWall = new Wall(gl, {
+  texture: betonTexture,
   position: [3, 0, -3],
   rotation: [0, -Math.PI / 2, 0],
   scale: [10, 10, 10],
-  color: [0.5, 0.5, 0.5, 1.0],
 });
 const backWall = new Wall(gl, {
+  texture: betonTexture,
   position: [0, 0, -10],
   rotation: [0, 0, 0],
   scale: [10, 10, 10],
-  color: [0.3, 0.3, 0.3, 1.0],
 });
 
 const scene = new Scene(gl, [cube1, cube2, cube3, cube4, floor, leftWall, rightWall, backWall]);

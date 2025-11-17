@@ -1,3 +1,5 @@
+import { type vec4 as Vec4 } from "gl-matrix";
+
 let lastTime = performance.now();
 let frames = 0;
 let fps = 0;
@@ -40,17 +42,22 @@ export function getAttribLocation(
   return location;
 }
 
-export function safeCreateBuffer(
-  gl: WebGLRenderingContext,
-  data: Float32Array | Uint8Array
-): WebGLBuffer {
+export function safeCreateBuffer({
+  gl,
+  data,
+  isIndexBuffer = false,
+}: {
+  gl: WebGLRenderingContext;
+  data: Float32Array | Uint8Array | Uint16Array;
+  isIndexBuffer?: boolean;
+}): WebGLBuffer {
   const buffer = gl.createBuffer();
   if (!buffer) {
     throw new Error("Failed to create buffer");
   }
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  gl.bindBuffer(isIndexBuffer ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(isIndexBuffer ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
   return buffer;
 }
@@ -98,4 +105,35 @@ export function initShaders(
   gl.deleteShader(fragmentShader);
 
   return program;
+}
+
+export function generateColorArray(color: Vec4, vertexCount: number): Float32Array {
+  const colors: number[] = [];
+  for (let i = 0; i < vertexCount; i++) {
+    colors.push(...color);
+  }
+  return new Float32Array(colors);
+}
+
+export function loadTexture(gl: WebGLRenderingContext, url: string): WebGLTexture {
+  const texture = gl.createTexture();
+  const image = new Image();
+  image.src = url;
+
+  image.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+    gl.generateMipmap(gl.TEXTURE_2D);
+  };
+
+  return texture;
 }

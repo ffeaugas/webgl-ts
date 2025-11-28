@@ -7,7 +7,14 @@ import {
   initShaders,
   generateColorArray,
 } from "./utils";
-import { mat4, type mat4 as Mat4, type vec3 as Vec3, type vec4 as Vec4 } from "gl-matrix";
+import {
+  mat4,
+  mat3,
+  type mat4 as Mat4,
+  type mat3 as Mat3,
+  type vec3 as Vec3,
+  type vec4 as Vec4,
+} from "gl-matrix";
 import type { Drawable } from "./Drawable";
 
 export interface MeshGeometry {
@@ -15,6 +22,7 @@ export interface MeshGeometry {
   colors: Float32Array;
   textureCoords?: Float32Array;
   indices: Uint16Array;
+  normals: Float32Array;
 }
 
 export interface MeshOptions {
@@ -33,6 +41,7 @@ export abstract class Mesh implements Drawable {
   readonly texture: WebGLTexture | undefined;
   private readonly gl: WebGL2RenderingContext;
   private readonly modelMatrix: Mat4 = mat4.create();
+  private readonly normalMatrix: Mat3 = mat3.create();
   private readonly vao: WebGLVertexArrayObject;
   private readonly shaderProgram: WebGLProgram;
   private readonly buffers: Record<string, WebGLBuffer>;
@@ -40,6 +49,7 @@ export abstract class Mesh implements Drawable {
     position: number;
     color: number;
     texture: number;
+    normals: number;
   };
   private readonly uniformLocations: Record<string, WebGLUniformLocation>;
   protected readonly indices: Uint16Array;
@@ -58,13 +68,15 @@ export abstract class Mesh implements Drawable {
       position: getAttribLocation(this.gl, this.shaderProgram, "vertexPosition"),
       color: getAttribLocation(this.gl, this.shaderProgram, "vertexColor"),
       texture: getAttribLocation(this.gl, this.shaderProgram, "vertexTexture"),
+      normals: getAttribLocation(this.gl, this.shaderProgram, "vertexNormal"),
     };
     this.uniformLocations = {
       modelMatrix: getUniformLocation(this.gl, this.shaderProgram, "modelMatrix"),
       projectionViewMatrix: getUniformLocation(this.gl, this.shaderProgram, "projectionViewMatrix"),
       textureSampler: getUniformLocation(this.gl, this.shaderProgram, "textureSampler"),
       useTexture: getUniformLocation(this.gl, this.shaderProgram, "useTexture"),
-      lightPosition: getUniformLocation(this.gl, this.shaderProgram, "lightPosition"),
+      lightDirection: getUniformLocation(this.gl, this.shaderProgram, "lightDirection"),
+      normalMatrix: getUniformLocation(this.gl, this.shaderProgram, "normalMatrix"),
     };
     const colors = this.color
       ? generateColorArray(this.color, geometry.vertices.length / 3)
@@ -78,6 +90,7 @@ export abstract class Mesh implements Drawable {
       color: safeCreateBuffer({ gl: this.gl, data: colors }),
       index: safeCreateBuffer({ gl: this.gl, data: geometry.indices, isIndexBuffer: true }),
       texture: safeCreateBuffer({ gl: this.gl, data: textureCoords }),
+      normals: safeCreateBuffer({ gl: this.gl, data: geometry.normals }),
     };
 
     this.buffers = buffers;
@@ -85,8 +98,6 @@ export abstract class Mesh implements Drawable {
 
     this.setupVertexAttributeObject();
   }
-
-  protected abstract getGeometry(): MeshGeometry;
 
   private setupVertexAttributeObject(): void {
     this.gl.bindVertexArray(this.vao);
@@ -103,6 +114,10 @@ export abstract class Mesh implements Drawable {
     this.gl.enableVertexAttribArray(this.attribLocations.texture);
     this.gl.vertexAttribPointer(this.attribLocations.texture, 2, this.gl.FLOAT, false, 0, 0);
 
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.normals);
+    this.gl.enableVertexAttribArray(this.attribLocations.normals);
+    this.gl.vertexAttribPointer(this.attribLocations.normals, 3, this.gl.FLOAT, false, 0, 0);
+
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.buffers.index);
     this.gl.bindVertexArray(null);
   }
@@ -114,6 +129,10 @@ export abstract class Mesh implements Drawable {
     mat4.rotateY(this.modelMatrix, this.modelMatrix, this.rotation[1]);
     mat4.rotateZ(this.modelMatrix, this.modelMatrix, this.rotation[2]);
     mat4.scale(this.modelMatrix, this.modelMatrix, this.scale);
+
+    mat3.fromMat4(this.normalMatrix, this.modelMatrix);
+    mat3.invert(this.normalMatrix, this.normalMatrix);
+    mat3.transpose(this.normalMatrix, this.normalMatrix);
   }
 
   public draw(projectionViewMatrix: Mat4): void {
@@ -130,6 +149,9 @@ export abstract class Mesh implements Drawable {
       false,
       projectionViewMatrix
     );
+    this.gl.uniformMatrix3fv(this.uniformLocations.normalMatrix, false, this.normalMatrix);
+
+    this.gl.uniform3fv(this.uniformLocations.lightDirection, [1, 2, 0]);
 
     if (this.texture) {
       this.gl.activeTexture(this.gl.TEXTURE0);
@@ -152,4 +174,7 @@ export abstract class Mesh implements Drawable {
     this.gl.deleteBuffer(this.buffers.texture);
     this.gl.deleteProgram(this.shaderProgram);
   }
+
+  protected abstract getGeometry(): MeshGeometry;
+  public abstract animate(): void;
 }

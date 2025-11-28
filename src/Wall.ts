@@ -31,6 +31,11 @@ const WALL_TEXTURE_COORDS = new Float32Array([
 ]);
 
 // prettier-ignore
+const WALL_NORMALS = new Float32Array([
+  0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+]);
+
+// prettier-ignore
 const WALL_INDICES = new Uint16Array([
     0,  1,  2,      0,  2,  3,
 ]);
@@ -61,6 +66,9 @@ export class Wall extends Mesh {
       colors: WALL_COLORS,
       textureCoords: WALL_TEXTURE_COORDS,
       indices: WALL_INDICES,
+      normals: WALL_NORMALS,
     };
   }
+
+  public animate(): void {}
 }

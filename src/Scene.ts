@@ -1,5 +1,6 @@
 import type { Drawable } from "./Drawable";
 import type { mat4 as Mat4 } from "gl-matrix";
+import { Mesh } from "./Mesh";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -20,6 +21,9 @@ export class Scene {
     this.gl.enable(this.gl.DEPTH_TEST);
 
     for (const object of this.objects) {
+      if (object instanceof Mesh) {
+        object.animate();
+      }
       object.draw(projectionViewMatrix);
     }
   }

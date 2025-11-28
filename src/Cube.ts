@@ -51,6 +51,21 @@ const CUBE_TEXTURE_COORDS = new Float32Array([
   0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
 ]);
 
+const CUBE_NORMALS = new Float32Array([
+  // Front face
+  0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+  // Back face
+  0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+  // Top face
+  0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+  // Bottom face
+  0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
+  // Right face
+  1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+  // Left face
+  -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+]);
+
 // prettier-ignore
 const CUBE_INDICES = new Uint16Array([
     0,  1,  2,      0,  2,  3,    // front
@@ -85,6 +100,12 @@ export class Cube extends Mesh {
       colors: CUBE_COLORS,
       textureCoords: CUBE_TEXTURE_COORDS,
       indices: CUBE_INDICES,
+      normals: CUBE_NORMALS,
     };
+  }
+
+  public animate(): void {
+    this.rotation[1] += 0.01;
+    this.rotation[2] += 0.01;
   }
 }
